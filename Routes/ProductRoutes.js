@@ -1,7 +1,7 @@
 import express from "express";
 import asyncHandler from "express-async-handler";
-import Product from "./../Models/ProductModel.js";
 import { admin, isAuth } from "./../Middleware/AuthMiddleware.js";
+import Product from "./../Models/ProductModel.js";
 
 const productRoute = express.Router();
 
@@ -19,12 +19,35 @@ productRoute.get(
           },
         }
       : {};
-    const count = await Product.countDocuments({ ...keyword });
-    const products = await Product.find({ ...keyword })
+
+    const minPrice = Number(req.query.minPrice) || 0;
+    const maxPrice = Number(req.query.maxPrice) || Number.MAX_VALUE;
+
+    const priceRangeFilter = {
+      price: {
+        $gte: minPrice > 0 ? minPrice : Number.NEGATIVE_INFINITY,
+        $lte: maxPrice > 0 ? maxPrice : Number.POSITIVE_INFINITY,
+      },
+    };
+
+    const sortOptions = {
+      lowToHigh: { price: 1 },
+      highToLow: { price: -1 },
+      newlyAdded: { createdAt: -1 },
+      default: { _id: -1 },
+    };
+
+    const sortBy = sortOptions[req.query.sortBy] || sortOptions.default;
+
+    const count = await Product.countDocuments({ ...keyword, ...priceRangeFilter });
+    const products = await Product.find({ ...keyword, ...priceRangeFilter })
       .limit(pageSize)
       .skip(pageSize * (page - 1))
-      .sort({ _id: -1 });
-    res.json({ products, page, pages: Math.ceil(count / pageSize) });
+      .sort(sortBy);
+
+    const result = { products, page, pages: Math.ceil(count / pageSize) };
+
+    res.json(result);
   })
 );
 
@@ -32,7 +55,7 @@ productRoute.get(
 productRoute.get(
   "/all",
   isAuth, // <-- Authentication middleware
-  admin,   // <-- Admin role check middleware
+  admin, // <-- Admin role check middleware
   asyncHandler(async (req, res) => {
     const products = await Product.find({}).sort({ _id: -1 });
     res.json(products);
