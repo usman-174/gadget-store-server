@@ -20,11 +20,8 @@
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^6.1.4",
     "nodemailer": "^6.9.4",
-      "dotenv": "^16.3.1"
-  },
-  "devDependencies": {
+    "dotenv": "^16.3.1",
     "concurrently": "^7.0.0",
-  
     "morgan": "^1.10.0",
     "nodemon": "^2.0.15"
   }
